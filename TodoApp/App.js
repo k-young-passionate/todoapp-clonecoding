@@ -1,19 +1,144 @@
 import React from 'react';
-import { StyleSheet, Text, View, StatusBar, TextInput, Dimensions, Platform } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, TextInput, Dimensions, Platform, ScrollView } from 'react-native';
+import ToDo from "./ToDo"
+import { AppLoading } from "expo"
+import uuidv1 from "uuid/v1"
 
-const {height, width} = Dimensions.get("window");
+const { height, width } = Dimensions.get("window");
 
-export default function App() {
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <Text style={styles.title}>Kawai To Do</Text>
-      <View style={styles.card}>
-        <TextInput style={styles.input} placeholder={"New To Do"} />      
+
+export default class App extends React.Component {
+  state = {
+    newToDo: "",
+    loadedToDos: false,
+    toDos: {}
+  };
+  componentDidMount = () => {
+    this._loadToDo();
+  }
+
+  render() {
+    const { newToDo, loadedToDos, toDos } = this.state;
+    console.log(toDos);
+    if (!loadedToDos) {
+      return <AppLoading />;
+    }
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <Text style={styles.title}>Kawai To Do</Text>
+        <View style={styles.card}>
+          <TextInput
+            style={styles.input}
+            placeholder={"New To Do"}
+            value={newToDo}
+            onChangeText={this._controlNewToDo}
+            placeholderTextColor={"#999"}
+            returnKeyType={"done"}
+            autoCorrect={false}
+            onSubmitEditing={this._addToDo}
+          />
+          <ScrollView contentContainerStyle={styles.toDos}>
+            {Object.values(toDos).map(toDo => <ToDo
+              key={toDo.id}
+              deleteToDo={this._deleteToDo}
+              uncompleteToDo={this._uncompleteToDo}
+              completeToDo={this._completeToDo}
+              {...toDo}
+            />)}
+            {/* <ToDo text="hi" /> */}
+          </ScrollView>
+        </View>
       </View>
-    </View>
-  );
+    );
+  }
+
+  _controlNewToDo = text => {
+    this.setState({
+      newToDo: text
+    });
+  };
+
+  _loadToDo = () => {
+    this.setState({
+      loadedToDos: true
+    })
+  }
+
+  _addToDo = () => {
+    const { newToDo } = this.state;
+    if (newToDo !== "") {
+
+      this.setState(prevState => {
+        const ID = uuidv1();
+        const newToDoObject = {
+          [ID]: {
+            id: ID,
+            isCompleted: false,
+            text: newToDo,
+            createdAt: Date.now()
+          }
+        };
+        const newState = {
+          ...prevState,
+          newToDo: "",
+          toDos: {
+            ...prevState.toDos,
+            ...newToDoObject
+          }
+        };
+        return { ...newState }
+      });
+
+    }
+  }
+
+  _deleteToDo = (id) => {
+    this.setState(prevState => {
+      const toDos = prevState.toDos;
+      delete toDos[id];
+      const newState = {
+        ...prevState,
+        ...toDos
+      };
+      return { ...newState };
+    });
+  };
+
+
+  _uncompleteToDo = (id) => {
+    this.setState(prevState => {
+      const newState = {
+        ...prevState,
+        toDos: {
+          ...prevState.toDos,
+          [id]: {
+            ...prevState.toDos[id],
+            isCompleted: false
+          }
+        }
+      }
+      return { ...newState }
+    })
+  }
+
+  _completeToDo = (id) => {
+    this.setState(prevState => {
+      const newState = {
+        ...prevState,
+        toDos: {
+          ...prevState.toDos,
+          [id]: {
+            ...prevState.toDos[id],
+            isCompleted: true
+          }
+        }
+      }
+      return { ...newState }
+    })
+  }
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -50,5 +175,14 @@ const styles = StyleSheet.create({
         elavation: 3
       }
     })
+  },
+  input: {
+    padding: 20,
+    borderBottomColor: "#bbb",
+    borderBottomWidth: 1,
+    fontSize: 25
+  },
+  toDos: {
+    alignItems: "center"
   }
 });
